@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrieNode {
     pub id: u32,
     pub ch: Option<char>,
@@ -9,6 +10,7 @@ pub struct TrieNode {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrieEdge {
     pub from: u32,
     pub to: u32,
@@ -16,6 +18,7 @@ pub struct TrieEdge {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrieGraph {
     pub nodes: Vec<TrieNode>,
     pub edges: Vec<TrieEdge>,
@@ -23,6 +26,7 @@ pub struct TrieGraph {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AutomatonNode {
     pub id: u32,
     pub positions: Vec<(i32, i32)>,
@@ -30,6 +34,7 @@ pub struct AutomatonNode {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AutomatonEdge {
     pub from: u32,
     pub to: u32,
@@ -38,6 +43,7 @@ pub struct AutomatonEdge {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SearchResult {
     pub query: String,
     pub max_edits: i32,
