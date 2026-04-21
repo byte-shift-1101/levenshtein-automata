@@ -135,7 +135,6 @@ export function useSearch(): SearchState {
             if (ac.signal.aborted) return
             try {
                 const res = _mod.search(word, n)
-                console.log("[search result]", res)
                 if (!ac.signal.aborted) {
                     setResult(res)
                     setIsSearching(false)
@@ -180,7 +179,7 @@ export function useTrieGraph(): TrieGraphState {
         setError(null)
         queueMicrotask(() => {
             try {
-                setGraph(_mod.trie_graph())
+                setGraph(_mod.trieGraph())
             } catch (e) {
                 setError(e instanceof Error ? e.message : String(e))
             } finally {

@@ -1,4 +1,5 @@
 use algorithm::automata::Automata;
+use algorithm::graph::Op;
 use algorithm::trie::TrieBuilder;
 use algorithm::walker::walk;
 use std::collections::HashSet;
@@ -198,6 +199,78 @@ fn trie_graph_non_root_has_incoming_char() {
             node.ch.is_some(),
             "non-root node {} missing incoming char",
             node.id
+        );
+    }
+}
+
+#[test]
+fn start_state_has_depth_zero() {
+    let trie = build_trie(&["cat", "car"]);
+    let automata = Automata::new("cat".to_string(), 1);
+    let result = walk(&trie, &automata);
+    let start = result.states.iter().find(|s| s.id == 0).unwrap();
+    assert_eq!(start.depth, 0, "start state must have depth 0");
+}
+
+#[test]
+fn state_depths_are_non_decreasing_along_transitions() {
+    let vocab = &["cat", "car", "bat"];
+    let trie = build_trie(vocab);
+    let automata = Automata::new("cat".to_string(), 1);
+    let result = walk(&trie, &automata);
+
+    let depth: std::collections::HashMap<u32, u32> =
+        result.states.iter().map(|s| (s.id, s.depth)).collect();
+
+    for t in &result.transitions {
+        let d_from = depth[&t.from];
+        let d_to = depth[&t.to];
+        assert!(
+            d_to >= d_from,
+            "transition {} -> {} goes backwards in depth ({} -> {})",
+            t.from, t.to, d_from, d_to
+        );
+    }
+}
+
+#[test]
+fn all_transitions_have_valid_op() {
+    let vocab = &["cat", "car", "bat", "cab"];
+    let trie = build_trie(vocab);
+    let automata = Automata::new("cat".to_string(), 2);
+    let result = walk(&trie, &automata);
+    for t in &result.transitions {
+        let _ = match t.op {
+            Op::Match | Op::Sub | Op::Ins | Op::Del => true,
+        };
+    }
+}
+
+#[test]
+fn exact_match_transitions_are_match_op() {
+    let trie = build_trie(&["abc"]);
+    let automata = Automata::new("abc".to_string(), 0);
+    let result = walk(&trie, &automata);
+    assert!(!result.transitions.is_empty());
+    for t in &result.transitions {
+        assert!(
+            matches!(t.op, Op::Match),
+            "with n=0 all transitions must be Match, got non-match on char '{}'",
+            t.ch
+        );
+    }
+}
+
+#[test]
+fn mismatch_transitions_are_not_match_op() {
+    let trie = build_trie(&["bbb"]);
+    let automata = Automata::new("aaa".to_string(), 3);
+    let result = walk(&trie, &automata);
+    assert!(!result.transitions.is_empty());
+    for t in &result.transitions {
+        assert!(
+            !matches!(t.op, Op::Match),
+            "no char matches so no transition should be Match"
         );
     }
 }

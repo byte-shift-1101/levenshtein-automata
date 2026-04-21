@@ -1,5 +1,6 @@
 pub mod automata;
 pub mod dictionary;
+pub mod edit_graph;
 pub mod graph;
 pub mod position;
 pub mod state;
@@ -14,6 +15,7 @@ use wasm_bindgen::prelude::*;
 
 use automata::Automata;
 use dictionary::stream_dictionary_to_writer;
+use graph::{SearchResult, TrieGraph};
 use text_stream_writer::TrieStreamWriter;
 use trie::{Trie, TrieBuilder};
 use walker::walk;
@@ -50,7 +52,7 @@ pub fn reset() {
 }
 
 #[wasm_bindgen]
-pub fn search(word: &str, n: i32) -> Result<JsValue, JsValue> {
+pub fn search(word: &str, n: i32) -> Result<SearchResult, JsValue> {
     if n < 0 {
         return Err(JsValue::from_str("n must be >= 0"));
     }
@@ -71,23 +73,21 @@ pub fn search(word: &str, n: i32) -> Result<JsValue, JsValue> {
             )),
             Some(trie) => {
                 let automata = Automata::new(word.to_string(), n);
-                let result = walk(trie, &automata);
-                serde_wasm_bindgen::to_value(&result).map_err(|e| JsValue::from_str(&e.to_string()))
+                Ok(walk(trie, &automata))
             }
         }
     })
 }
 
-#[wasm_bindgen]
-pub fn trie_graph() -> Result<JsValue, JsValue> {
+#[wasm_bindgen(js_name = trieGraph)]
+pub fn trie_graph() -> Result<TrieGraph, JsValue> {
     TRIE.with(|t| {
         let borrow = t.borrow();
         match borrow.as_ref() {
             None => Err(JsValue::from_str(
                 "no dictionary loaded — call init() first",
             )),
-            Some(trie) => serde_wasm_bindgen::to_value(&trie.graph())
-                .map_err(|e| JsValue::from_str(&e.to_string())),
+            Some(trie) => Ok(trie.graph()),
         }
     })
 }

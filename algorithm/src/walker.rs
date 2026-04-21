@@ -1,11 +1,27 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::automata::Automata;
-use crate::graph::{AutomatonEdge, AutomatonNode, SearchResult};
+use crate::edit_graph::compute_edit_graph;
+use crate::graph::{AutomatonEdge, AutomatonNode, Op, SearchResult};
 use crate::state::State;
 use crate::trie::Trie;
 
 const MAX_STATES: usize = 500_000;
+
+fn classify_op(from: &State, to: &State) -> Op {
+    let min_e_from = from.positions().map(|p| p.edits()).min().unwrap_or(0);
+    let min_e_to = to.positions().map(|p| p.edits()).min().unwrap_or(0);
+    let max_i_from = from.positions().map(|p| p.index()).max().unwrap_or(0);
+    let max_i_to = to.positions().map(|p| p.index()).max().unwrap_or(0);
+
+    if min_e_to <= min_e_from {
+        Op::Match
+    } else if max_i_to > max_i_from {
+        Op::Sub
+    } else {
+        Op::Ins
+    }
+}
 
 pub fn walk(trie: &Trie, automata: &Automata) -> SearchResult {
     let mut initial = State::new();
@@ -20,10 +36,10 @@ pub fn walk(trie: &Trie, automata: &Automata) -> SearchResult {
 
     let mut state_map: HashMap<(u32, Vec<(i32, i32)>), u32> = HashMap::new();
 
-    let mut stack: Vec<(&Trie, String, State, Option<u32>, Option<char>)> =
-        vec![(trie, String::new(), initial, None, None)];
+    let mut stack: Vec<(&Trie, String, State, Option<u32>, Option<char>, Option<Op>)> =
+        vec![(trie, String::new(), initial, None, None, None)];
 
-    while let Some((node, prefix, state, parent_id, incoming_ch)) = stack.pop() {
+    while let Some((node, prefix, state, parent_id, incoming_ch, incoming_op)) = stack.pop() {
         if states.len() >= MAX_STATES {
             truncated = true;
             break;
@@ -43,18 +59,20 @@ pub fn walk(trie: &Trie, automata: &Automata) -> SearchResult {
                     id,
                     positions: sorted_pos.clone(),
                     accepting,
+                    depth: prefix.len() as u32,
                 });
                 state_map.insert(state_key, id);
                 id
             }
         };
 
-        if let (Some(from), Some(ch)) = (parent_id, incoming_ch) {
+        if let (Some(from), Some(ch), Some(op)) = (parent_id, incoming_ch, incoming_op) {
             transitions.push(AutomatonEdge {
                 from,
                 to: state_id,
                 ch,
                 trie_node: node.id(),
+                op,
             });
         }
 
@@ -66,6 +84,7 @@ pub fn walk(trie: &Trie, automata: &Automata) -> SearchResult {
         for (ch, child) in node.children() {
             let next_state = automata.transition(&state, ch);
             if !next_state.is_empty() {
+                let op = classify_op(&state, &next_state);
                 stack.push((
                     child,
                     {
@@ -76,6 +95,7 @@ pub fn walk(trie: &Trie, automata: &Automata) -> SearchResult {
                     next_state,
                     Some(state_id),
                     Some(ch),
+                    Some(op),
                 ));
             }
         }
@@ -87,14 +107,19 @@ pub fn walk(trie: &Trie, automata: &Automata) -> SearchResult {
     let mut accepting_trie_nodes: Vec<u32> = accepting_set.into_iter().collect();
     accepting_trie_nodes.sort_unstable();
 
+    let query_str = automata.query().to_string();
+    let max_edits = automata.max_edits();
+    let edit_graph = compute_edit_graph(&query_str, max_edits.max(0) as u32, &matches);
+
     SearchResult {
-        query: automata.query().to_string(),
-        max_edits: automata.max_edits(),
+        query: query_str,
+        max_edits,
         matches,
         states,
         transitions,
         visited_trie_nodes,
         accepting_trie_nodes,
         truncated,
+        edit_graph,
     }
 }
