@@ -47,8 +47,6 @@ export const AUTO_OVAL_LINE_H = 15
 export const AUTO_OVAL_H_PAD = 14
 export const AUTO_OVAL_V_PAD = 8
 
-export const AUTO_MAX_EDIT_NODES = 2000
-
 export const AUTO_BASE_SIGMA_SETTINGS = {
     renderLabels: false,
     renderEdgeLabels: true,

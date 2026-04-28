@@ -59,6 +59,7 @@ pub fn walk(trie: &Trie, automata: &Automata) -> SearchResult {
                     id,
                     positions: sorted_pos.clone(),
                     accepting,
+                    matched_words: Vec::new(),
                     depth: prefix.len() as u32,
                 });
                 state_map.insert(state_key, id);
@@ -79,6 +80,9 @@ pub fn walk(trie: &Trie, automata: &Automata) -> SearchResult {
         if node.is_end() && automata.is_accept(&state) {
             matches.push(prefix.clone());
             accepting_set.insert(node.id());
+            if !states[state_id as usize].matched_words.contains(&prefix) {
+                states[state_id as usize].matched_words.push(prefix.clone());
+            }
         }
 
         for (ch, child) in node.children() {

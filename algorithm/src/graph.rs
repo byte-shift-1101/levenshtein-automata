@@ -48,6 +48,7 @@ pub struct AutomatonNode {
     pub id: u32,
     pub positions: Vec<(i32, i32)>,
     pub accepting: bool,
+    pub matched_words: Vec<String>,
     pub depth: u32,
 }
 

@@ -53,6 +53,10 @@ fn sorted_matches(query: &str, n: i32, vocab: &[&str]) -> Vec<String> {
     got
 }
 
+fn subsumes((i, e): (i32, i32), (j, f): (i32, i32)) -> bool {
+    e < f && (j - i).abs() <= f - e
+}
+
 #[test]
 fn exact_match_n0() {
     let vocab = &["apple", "apply", "ample", "apples", "apt"];
@@ -228,7 +232,10 @@ fn state_depths_are_non_decreasing_along_transitions() {
         assert!(
             d_to >= d_from,
             "transition {} -> {} goes backwards in depth ({} -> {})",
-            t.from, t.to, d_from, d_to
+            t.from,
+            t.to,
+            d_from,
+            d_to
         );
     }
 }
@@ -273,4 +280,47 @@ fn mismatch_transitions_are_not_match_op() {
             "no char matches so no transition should be Match"
         );
     }
+}
+
+#[test]
+fn automaton_states_are_reduced_like_reference_algorithm() {
+    let vocab = &["abcd", "abxd", "axcd", "xbc", "abcde", "ab"];
+    let trie = build_trie(vocab);
+    let automata = Automata::new("abcd".to_string(), 2);
+    let result = walk(&trie, &automata);
+
+    for state in &result.states {
+        for &p in &state.positions {
+            for &q in &state.positions {
+                if p == q {
+                    continue;
+                }
+                assert!(
+                    !subsumes(q, p),
+                    "state {} contains subsumed position {:?} in {:?}",
+                    state.id,
+                    p,
+                    state.positions
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn accepting_states_include_matched_words() {
+    let trie = build_trie(&["cat", "car", "dog"]);
+    let automata = Automata::new("cat".to_string(), 1);
+    let result = walk(&trie, &automata);
+    let mut words: Vec<String> = result
+        .states
+        .iter()
+        .flat_map(|state| state.matched_words.clone())
+        .collect();
+    words.sort();
+
+    let mut matches = result.matches.clone();
+    matches.sort();
+
+    assert_eq!(words, matches);
 }

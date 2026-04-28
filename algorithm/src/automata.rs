@@ -86,12 +86,25 @@ impl Automata {
     }
 
     fn normalize(&self, state: State) -> State {
+        let positions: Vec<(i32, i32)> = state
+            .positions()
+            .filter(|p| p.edits() <= self.n)
+            .map(|p| (p.index(), p.edits()))
+            .collect();
         let mut res = State::new();
-        for p in state.positions() {
-            if p.edits() <= self.n {
-                res.insert(p.index(), p.edits());
+
+        for &(i, e) in &positions {
+            let subsumed = positions
+                .iter()
+                .any(|&(j, f)| (i, e) != (j, f) && subsumes((j, f), (i, e)));
+            if !subsumed {
+                res.insert(i, e);
             }
         }
         res
     }
+}
+
+fn subsumes((i, e): (i32, i32), (j, f): (i32, i32)) -> bool {
+    e < f && (j - i).abs() <= f - e
 }

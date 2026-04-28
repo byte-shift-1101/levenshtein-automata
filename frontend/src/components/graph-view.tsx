@@ -4,15 +4,16 @@ import { Button } from "@/components/ui/button"
 import { TrieGraphView } from "@/components/trie-graph"
 import { AutomatonGraphView } from "@/components/automation-graph"
 import type { SearchResult } from "@/wasm/algorithm"
-import type { GraphPanel } from "@/components/workspace"
+import type { GraphPanel, GraphPathMode } from "@/components/workspace"
 
 interface GraphViewProps {
     panel: GraphPanel
+    pathMode: GraphPathMode
     result: SearchResult | null
     onBack: () => void
 }
 
-export function GraphView({ panel, result, onBack }: GraphViewProps) {
+export function GraphView({ panel, pathMode, result, onBack }: GraphViewProps) {
     return (
         <div className="relative h-full w-full overflow-hidden bg-background">
             <div className="absolute top-0 right-0 left-0 z-10 flex items-center gap-2 p-3">
@@ -88,7 +89,12 @@ export function GraphView({ panel, result, onBack }: GraphViewProps) {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25 }}
                     >
-                        {result && <AutomatonGraphView result={result} />}
+                        {result && (
+                            <AutomatonGraphView
+                                result={result}
+                                pathMode={pathMode}
+                            />
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
